@@ -1,0 +1,26 @@
+---
+- hosts: control
+  tasks:
+  - name: unmount the ceph disk
+    shell: umount /dev/"{{ item }}"
+    with_items:
+      - sdc1
+      - sdd1
+      - sde1
+      - sdf1
+    tags:
+      - umount
+  - name: delete the ceph_data disk part
+    shell: parted /dev/{{ item }} rm 1
+    with_items:
+      - sdc
+      - sdd
+      - sde
+      - sdf
+    tags:
+      - delete osd data
+  - name: delete the ceph_journal disk part
+    shell: parted /dev/sdb rm {{ item }}
+    with_items: [ 1,2,3,4 ]
+    tags:
+      - delete osd journal

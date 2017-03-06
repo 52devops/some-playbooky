@@ -1,0 +1,30 @@
+---
+- hosts: control
+  tasks:
+  - name: Use the dd command to overwrite the original data on the disk
+    shell: dd if=/dev/zero of=/dev/"{{ item }}" bs=20M count=1
+    with_items:
+      - sdb
+      - sdc
+      - sde
+      - sdf
+    tags:
+      - overwrite
+
+  - name: Tag the Journal disk 
+    shell: parted /dev/sdb -s -- mklabel gpt  mkpart KOLLA_CEPH_OSD_BOOTSTRAP_FOO1_J 1 20G;
+           parted /dev/sdb -s --   mkpart KOLLA_CEPH_OSD_BOOTSTRAP_FOO2_J 20G 40G;
+           parted /dev/sdb -s --   mkpart KOLLA_CEPH_OSD_BOOTSTRAP_FOO3_J 40G 60G;
+           parted /dev/sdb -s --   mkpart KOLLA_CEPH_OSD_BOOTSTRAP_FOO4_J 60G 80G;
+    tags:
+      - Tag Journal
+
+  - name: Tag the data disk
+    shell: parted /dev/sd"{{ item.name }}" -s -- mklabel gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_FOO"{{ item.num }}" 1 -1
+    with_items:
+      - { name: 'c', num: '1'}
+      - { name: 'd', num: '2'}
+      - { name: 'e', num: '3'}
+      - { name: 'f', num: '4'}
+    tags:
+      - Tag OSD
