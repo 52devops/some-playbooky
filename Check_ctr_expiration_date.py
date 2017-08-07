@@ -6,6 +6,7 @@ import datetime
 from dateutil import tz
 import time
 import requests
+import re
 
 def Send_Mess_Chat(message):
     pass
@@ -14,9 +15,12 @@ def Check_expire_time(**kwargs):
     for i in kwargs:
         Time_left = abs(Get_current_timestamp() - kwargs[i][1])
         if Time_left < 2592000:
-            Day_left = datetime.timedelta(Time_left).days
-            Msg = Msg + u"证书名：%s 到期时间：%s 距今日还有：%s天\n"%(i,kwargs[i][0],Day_left)
-    Send_Mess_Chat(Msg)
+            all_time = datetime.timedelta(seconds=Time_left)
+            Day_left = all_time.days
+            all_time = re.findall('(\d+):(\d+):(\d+)',str(all_time))
+            print all_time[0]
+            Msg = Msg + u"证书名：%s 到期时间：%s 距今日还有：%s天 %s时 %s分 %s秒\n"%(i,kwargs[i][0],Day_left,all_time[0][0],all_time[0][1],all_time[0][2])
+    print Msg
 
 def Deal_timezone(data):
     '''
