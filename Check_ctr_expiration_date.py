@@ -9,7 +9,15 @@ import requests
 import re
 
 def Send_Mess_Chat(message):
-    pass
+    payload = {
+        "text": '证书到期预警',
+        "attachments": [{
+            "text": "%s"%message
+        }],
+        "fallback": 'test2' + "\n" + 'test3',
+        "parseUrls": False
+    }
+    requests.post("xxxxx", data=json.dumps(payload), headers={"Content-Type": "application/json"})
 def Check_expire_time(**kwargs):
     Msg = u"将要到期的证书有:\n"
     for i in kwargs:
@@ -18,9 +26,9 @@ def Check_expire_time(**kwargs):
             all_time = datetime.timedelta(seconds=Time_left)
             Day_left = all_time.days
             all_time = re.findall('(\d+):(\d+):(\d+)',str(all_time))
-            print all_time[0]
             Msg = Msg + u"证书名：%s 到期时间：%s 距今日还有：%s天 %s时 %s分 %s秒\n"%(i,kwargs[i][0],Day_left,all_time[0][0],all_time[0][1],all_time[0][2])
-    print Msg
+    #print Msg
+    Send_Mess_Chat(Msg)
 
 def Deal_timezone(data):
     '''
@@ -42,7 +50,7 @@ def Init(data):
     Name_time = {}
     time_value = []  # 作为每一证书的value,里面放两项。[0]上海时间,[1]时间戳
     all = commands.getoutput(
-        'find /home/ubuntu/pki/output -type f|grep -E "(server|client)".pem').split('\n')
+        'find /home/ubuntu/pki/output -path "/home/ubuntu/pki/output/expired" -prune -o -type f|grep -v "expired"|grep -E "(server|client|cert)".pem').split('\n')
     f = open("/Script/file_record", 'w')  # 建立目录列表
     for i in all:
         time_src = commands.getoutput("openssl x509 -enddate -noout -in %s|awk -F'=' '{print $2}'" % i)
@@ -55,22 +63,24 @@ def Init(data):
     f.close()
     return Name_time
 
-Modify_time = os.popen("stat /Script/|awk 'NR==6 {print}'").next().strip().split(': ')[1]
-if not os.path.exists('/Script/time_record'):  # 文件不存在，程序初始化，建立  文件列表及 创建时间标识
-    os.system("touch /Script/time_record /Script/file_record")
-    Init(Modify_time)
-    Create = Modify_time
-else:  # 文件存在，读取文件内容 开始进行判断
-    f = open("/Script/time_record", 'r')
-    Create = f.read()
-    f.close()
-if Create == Modify_time:  # 通过时间戳 判断文件没有更改，比较每个证书的过期时间
-    Name_time = {}
-    f = open('/Script/file_record', 'r')
-    Name_time = json.load(f)
-    f.close()
-    Check_expire_time(**Name_time)
-
-else:  # 通过时间标识，判断文件更改，使用当前信息初始化
-    Check_expire_time(**Init(Modify_time))
+if __name__ == '__main__':
+    Modify_time = os.popen("stat /home/ubuntu/pki/output/|awk 'NR==6 {print}'").next().strip().split(': ')[1] #读取证书目录是否进行更新
+    #Modify_time = os.popen("stat /Script/|awk 'NR==6 {print}'").next().strip().split(': ')[1]
+    if not os.path.exists('/Script/time_record'):  # 文件不存在，程序初始化，建立  文件列表及 创建时间标识
+        os.system("touch /Script/time_record /Script/file_record")
+        Init(Modify_time)
+        Create = Modify_time
+    else:  # 文件存在，读取文件内容 开始进行判断
+        f = open("/Script/time_record", 'r')
+        Create = f.read()
+        f.close()
+    if Create == Modify_time:  # 通过时间戳 判断文件没有更改，比较每个证书的过期时间
+        Name_time = {}
+        f = open('/Script/file_record', 'r')
+        Name_time = json.load(f)
+        f.close()
+        Check_expire_time(**Name_time)
+    
+    else:  # 通过时间标识，判断文件更改，使用当前信息初始化
+        Check_expire_time(**Init(Modify_time))
 
